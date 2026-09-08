@@ -32,7 +32,12 @@ CURL_ARGS = [
 
 
 def load_cookies(path: Path) -> str:
-    """Construit le header Cookie depuis le fichier key=value."""
+    """Construit le header Cookie depuis le fichier.
+
+    Supporte deux formats :
+    - Simplifié : une ligne ``key=value`` par cookie
+    - Netscape   : ``domain<TAB>flag<TAB>path<TAB>secure<TAB>exp<TAB>name<TAB>value``
+    """
     if not path.exists():
         return ""
     cookies = []
@@ -40,7 +45,12 @@ def load_cookies(path: Path) -> str:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        if "=" in line:
+        if "\t" in line:
+            parts = line.split("\t")
+            if len(parts) >= 7:
+                name, value = parts[5], parts[6]
+                cookies.append(f"{name}={value}")
+        elif "=" in line:
             cookies.append(line)
     return "; ".join(cookies)
 
