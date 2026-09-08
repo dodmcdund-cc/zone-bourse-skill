@@ -113,7 +113,7 @@ def fetch_article(url: str) -> dict:
                 "url": url,
                 "titre": titre,
                 "date": date_iso,
-                "contenu": contenu[:10000],
+                "contenu": contenu,
                 "paywall": False,
             }
     else:
@@ -129,7 +129,7 @@ def fetch_article(url: str) -> dict:
         "url": url,
         "titre": titre,
         "date": date_iso,
-        "contenu": contenu[:2000] if contenu else None,
+        "contenu": contenu if contenu else None,
         "paywall": True,
     }
 
