@@ -23,6 +23,22 @@ scripts/
   cookies.txt        # cookies abonné (format key=value)
 ```
 
+### Usage rapide
+
+```bash
+# 1. Trouver le slug d'une action
+python3 ./scripts/search_slug.py "renault"
+# → RENAULT-4688
+
+# 2. Récupérer les liens d'actus, d'analyses et de recos
+python3 ./scripts/parse_actus.py RENAULT-4688 5
+# → JSON avec clés: actualites, analyses, recommandations
+
+# 3. Lire un article (avec gestion paywall via cookies.txt)
+python3 ./scripts/read_article.py "<url_zonebourse_complète>"
+# → JSON: url, titre, date (YYYY-MM-DD), contenu, paywall (true/false)
+```
+
 ## Recherche de slug
 
 ```bash
