@@ -53,6 +53,23 @@ def unescape(text: str) -> str:
     return text
 
 
+def detect_paywall(html: str) -> bool:
+    """Détecte un paywall via les marqueurs schema.org / HTML.
+
+    Stratégie par ordre de fiabilité :
+    1. JSON-LD isAccessibleForFree:false (standard schema.org pour SEO)
+    2. JSON-LD hasPart avec cssSelector pointant sur .paywall
+    3. Texte « réservé aux abonnés » dans la page
+    """
+    if re.search(r'"isAccessibleForFree"\s*:\s*false', html, re.IGNORECASE):
+        return True
+    if re.search(r'"cssSelector"\s*:\s*"[^"]*paywall', html, re.IGNORECASE):
+        return True
+    if re.search(r'(réservé aux abonnés|réservé à nos abonnés|abonnés uniquement)', html, re.IGNORECASE):
+        return True
+    return False
+
+
 def fetch_article(url: str) -> dict:
     """Récupère titre + contenu complet d'un article ZoneBourse."""
     cookie_header = load_cookies(COOKIES_FILE)
@@ -77,12 +94,11 @@ def fetch_article(url: str) -> dict:
     if date_match:
         date_iso = date_match.group(1)[:10]  # "2026-05-18T16:37:52+02:00" → "2026-05-18"
 
-    # Contenu principal — embedded dans articleBody (JS variable dans le HTML)
+    # Contenu principal — embedded dans articleBody (JSON-LD dans le HTML)
     article_match = re.search(r'"articleBody":\s*"([^"]+)"', html)
     if article_match:
-        raw = article_match.group(1)
-        contenu = unescape(raw)
-        if len(contenu) > 100:
+        contenu = unescape(article_match.group(1))
+        if len(contenu) > 100 and not detect_paywall(html):
             return {
                 "url": url,
                 "titre": titre,
@@ -90,19 +106,20 @@ def fetch_article(url: str) -> dict:
                 "contenu": contenu[:10000],
                 "paywall": False,
             }
+    else:
+        contenu = None
 
     # Fallback : og:description (teaser)
-    lead = None
-    og_desc = re.search(r'<meta[^>]+og:description[^>]+content="([^"]+)"', html)
-    if og_desc:
-        raw = og_desc.group(1).strip()
-        lead = unescape(raw)
+    if contenu is None:
+        og_desc = re.search(r'<meta[^>]+og:description[^>]+content="([^"]+)"', html)
+        if og_desc:
+            contenu = unescape(og_desc.group(1).strip())
 
     return {
         "url": url,
         "titre": titre,
         "date": date_iso,
-        "contenu": lead[:2000] if lead else None,
+        "contenu": contenu[:2000] if contenu else None,
         "paywall": True,
     }
 
