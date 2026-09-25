@@ -105,32 +105,32 @@ def fetch_article(url: str) -> dict:
         date_iso = date_match.group(1)[:10]  # "2026-05-18T16:37:52+02:00" → "2026-05-18"
 
     # Contenu principal — embedded dans articleBody (JSON-LD dans le HTML)
+    contenu = None
     article_match = re.search(r'"articleBody":\s*"([^"]+)"', html)
     if article_match:
         contenu = unescape(article_match.group(1))
-        if len(contenu) > 100 and not detect_paywall(html):
-            return {
-                "url": url,
-                "titre": titre,
-                "date": date_iso,
-                "contenu": contenu,
-                "paywall": False,
-            }
-    else:
-        contenu = None
 
-    # Fallback : og:description (teaser)
-    if contenu is None:
+    # Fallback : og:description (teaser / articles courts sans JSON-LD complet)
+    if not contenu:
         og_desc = re.search(r'<meta[^>]+og:description[^>]+content="([^"]+)"', html)
         if og_desc:
             contenu = unescape(og_desc.group(1).strip())
+
+    # Paywall = UNIQUEMENT si marqueurs explicites (isAccessibleForFree:false, "réservé aux abonnés", etc.)
+    # Pas d'inférence sur la longueur : un article gratuit peut être court (dépêche broker 1 ligne).
+    paywall = detect_paywall(html)
+
+    # Métadonnée schema.org isAccessibleForFree (true/false/absent) — explicite pour le caller
+    is_free_match = re.search(r'"isAccessibleForFree"\s*:\s*(true|false)', html, re.IGNORECASE)
+    is_free_meta = is_free_match.group(1).lower() == "true" if is_free_match else None
 
     return {
         "url": url,
         "titre": titre,
         "date": date_iso,
         "contenu": contenu if contenu else None,
-        "paywall": True,
+        "paywall": paywall,
+        "isAccessibleForFree": is_free_meta,
     }
 
 
