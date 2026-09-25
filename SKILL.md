@@ -1,3 +1,8 @@
+---
+name: zonebourse
+description: Scrape ZoneBourse.com for stock news, analyses, and analyst recommendations via local Python scripts. Use when looking up a company slug by name/ticker, fetching the latest news/analyses/recommendations for a stock, or reading a full article (handling paywall via stored cookies).
+---
+
 # ZoneBourse — SKILL.md
 
 ## Architecture
@@ -18,17 +23,33 @@ scripts/
   cookies.txt        # cookies abonné (format key=value)
 ```
 
+### Usage rapide
+
+```bash
+# 1. Trouver le slug d'une action
+python3 ./scripts/search_slug.py "renault"
+# → RENAULT-4688
+
+# 2. Récupérer les liens d'actus, d'analyses et de recos
+python3 ./scripts/parse_actus.py RENAULT-4688 5
+# → JSON avec clés: actualites, analyses, recommandations
+
+# 3. Lire un article (avec gestion paywall via cookies.txt)
+python3 ./scripts/read_article.py "<url_zonebourse_complète>"
+# → JSON: url, titre, date (YYYY-MM-DD), contenu, paywall (true/false)
+```
+
 ## Recherche de slug
 
 ```bash
-python3 ~/.openclaw/workspace/skills/zonebourse/scripts/search_slug.py PUBLICIS
+python3 ./scripts/search_slug.py PUBLICIS
 # PUBLICIS-GROUPE-S-A-4685
 ```
 
 ## Actualités d'une action
 
 ```bash
-python3 ~/.openclaw/workspace/skills/zonebourse/scripts/parse_actus.py PUBLICIS-GROUPE-S-A-4685
+python3 ./scripts/parse_actus.py PUBLICIS-GROUPE-S-A-4685
 ```
 
 Résultat (3 sections, URLs brutes) :
@@ -41,7 +62,7 @@ Résultat (3 sections, URLs brutes) :
 ## Contenu d'un article
 
 ```bash
-python3 ~/.openclaw/workspace/skills/zonebourse/scripts/read_article.py <url>
+python3 ./scripts/read_article.py <url>
 ```
 
 Résultat :
@@ -63,12 +84,16 @@ Les articles premiums nécéssitent une session connectee. Les cookies sont stoc
 
 ### Mettre à jour les cookies
 
+**Règle agent (ajoutée 2026-09-25)** : Quand les cookies sont expirés (test paywall `true` sur un article normalement accessible, ou JWT `zb_auth` décodé avec `exp` < now), **demander à Fred de réexporter les cookies** plutôt que de tenter de les remplacer par d'autres moyens. Procédure :
+
 1. Installer le plugin navigateur "Export Cookies" pour Chrome/Firefox
 2. Aller sur zonebourse.com et se connecter
 3. Exporter les cookies au format Netscape
-3. Copier le contenu dans `~/.openclaw/workspace/skills/zonebourse/scripts/cookies.txt`
+3. Copier le contenu dans `./scripts/cookies.txt`
    - Conserver uniquement les cookies essentiels : `zb_auth`, `zb_abonne`, `zb_membre`, `PHPSESSID`, `pv_r0`, `pv_r0_date`, `pv_r0_rand`, `hmv`
    - Supprimer `g_state` (trop volumineux, pose des problèmes avec le format Netscape)
+
+**⚠️ Leçon 2026-09-25** : un nettoyage trop agressif (retrait de `datadome`, `didomi_dcs`, `x_login_id` car jugés "trackers") fait retomber le paywall. Ces 3 cookies sont en fait **nécessaires au bot-check ZoneBourse** (Datadome anti-bot + IAB consent + session device). Les garder. Ne retirer que : `g_state` (trop gros), `euconsent-v2`, `_ga*`, `_fbp`, `_ttp`, `__gads`, `UTM_extern`, `x_device_uuid`, `rs-palmares-1`.
 
 ## Rate Limiting
 
