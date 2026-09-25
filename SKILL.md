@@ -84,12 +84,16 @@ Les articles premiums nécéssitent une session connectee. Les cookies sont stoc
 
 ### Mettre à jour les cookies
 
+**Règle agent (ajoutée 2026-09-25)** : Quand les cookies sont expirés (test paywall `true` sur un article normalement accessible, ou JWT `zb_auth` décodé avec `exp` < now), **demander à Fred de réexporter les cookies** plutôt que de tenter de les remplacer par d'autres moyens. Procédure :
+
 1. Installer le plugin navigateur "Export Cookies" pour Chrome/Firefox
 2. Aller sur zonebourse.com et se connecter
 3. Exporter les cookies au format Netscape
 3. Copier le contenu dans `./scripts/cookies.txt`
    - Conserver uniquement les cookies essentiels : `zb_auth`, `zb_abonne`, `zb_membre`, `PHPSESSID`, `pv_r0`, `pv_r0_date`, `pv_r0_rand`, `hmv`
    - Supprimer `g_state` (trop volumineux, pose des problèmes avec le format Netscape)
+
+**⚠️ Leçon 2026-09-25** : un nettoyage trop agressif (retrait de `datadome`, `didomi_dcs`, `x_login_id` car jugés "trackers") fait retomber le paywall. Ces 3 cookies sont en fait **nécessaires au bot-check ZoneBourse** (Datadome anti-bot + IAB consent + session device). Les garder. Ne retirer que : `g_state` (trop gros), `euconsent-v2`, `_ga*`, `_fbp`, `_ttp`, `__gads`, `UTM_extern`, `x_device_uuid`, `rs-palmares-1`.
 
 ## Rate Limiting
 
